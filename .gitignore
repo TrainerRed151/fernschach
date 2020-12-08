@@ -1,0 +1,35 @@
+# Compiled source #
+###################
+*.pyc
+*.swp
+*.env
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+*.sqlite3
+*.sqlite3.*
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+Thumbs.db
+
+## local settings, static and tmp folders ##
+local_settings.py
+/tmp
+/static
+
+## virtual environments ##
+venv
+
+## pyenv ##
+.python-version

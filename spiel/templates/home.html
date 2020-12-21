@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+  {{ block.super }}
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+        <h1 style="text-align:center">
+          Fernschach
+        </h1>
+        <br>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+        <form method="post">
+          {% csrf_token %}
+          <div style="text-align:center">
+            <br>
+            <button type="submit" name="spiele" class="btn btn-primary">Spiele!</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

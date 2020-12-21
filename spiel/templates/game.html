@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% load static %}
+
+
+{% block content %}
+  {{ block.super }}
+  <base href="{% static 'chessboardjs/' %}"/>
+<link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" integrity="sha384-q94+BZtLrkL1/ohfjR8c6L+A6qzNH9R2hBLwyoAfu3i/WCvQjzL2RQJ3uNHDISdU" crossorigin="anonymous">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+        <h1 style="text-align:center">
+          Fernschach
+        </h1>
+        <br>
+        <br>
+        <span id="current-fen"></span>
+        <br>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+        <div style="text-align:center">
+          <div id="board" style="width: 400px"></div>
+        </div>
+      </div>
+    </div>
+
+
+    {% if submitted %}
+      <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+          <h4>Sie haben sich dem Schicksal gefügt...</h4>
+        </div>
+      </div>
+    {% else %}
+    <div class="row">
+      <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+        <form method="post">
+          {% csrf_token %}
+          <div style="text-align:center">
+            <br>
+            <button type="submit" name="einsenden" class="btn btn-success" onclick="einsenden()">Dem Schicksal fügen</button>
+            <br>
+            <input type="text" id="fen-id" name="fen"></input>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" integrity="sha384-8Vi8VHwn3vjQ9eUHUxex3JSN/NFqUg3QbPyX8kWyb93+8AC/pPWTzj+nHtbC5bxD" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.js" integrity="sha384-s3XgLpvmHyscVpijnseAmye819Ee3yaGa8NxstkJVyA6nuDFjt59u1QvuEl/mecz" crossorigin="anonymous"></script>
+
+  <script>
+  // NOTE: this example uses the chess.js library:
+  // https://github.com/jhlywa/chess.js
+
+  document.getElementById("current-fen").innerHTML = '{{ fen }}'
+  var board = null
+  var game = null
+  if ('{{ fen }}' === 'start') {
+    game = new Chess()
+  }
+  else {
+    game = new Chess('{{ fen }}')
+  }
+  var whiteSquareGrey = '#a9a9a9'
+  var blackSquareGrey = '#696969'
+
+  function removeGreySquares () {
+    $('#board .square-55d63').css('background', '')
+  }
+
+  function greySquare (square) {
+    var $square = $('#board .square-' + square)
+
+    var background = whiteSquareGrey
+    if ($square.hasClass('black-3c85d')) {
+      background = blackSquareGrey
+    }
+
+    $square.css('background', background)
+  }
+
+  function onDragStart (source, piece) {
+    // do not pick up pieces if the game is over
+    if (game.game_over()) return false
+
+    // or if it's not that side's turn
+    if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+        (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+      return false
+    }
+  }
+
+  function onDrop (source, target) {
+    removeGreySquares()
+
+    // see if the move is legal
+    var move = game.move({
+      from: source,
+      to: target,
+      promotion: 'q' // NOTE: always promote to a queen for example simplicity
+    })
+
+    // illegal move
+    if (move === null) return 'snapback'
+  }
+
+  function onMouseoverSquare (square, piece) {
+    // get list of possible moves for this square
+    var moves = game.moves({
+      square: square,
+      verbose: true
+    })
+
+    // exit if there are no moves available for this square
+    if (moves.length === 0) return
+
+    // highlight the square they moused over
+    greySquare(square)
+
+    // highlight the possible squares for this piece
+    for (var i = 0; i < moves.length; i++) {
+      greySquare(moves[i].to)
+    }
+  }
+
+  function onMouseoutSquare (square, piece) {
+    removeGreySquares()
+  }
+
+  function onSnapEnd () {
+    board.position(game.fen())
+    document.getElementById("current-fen").innerHTML = game.fen()
+    document.getElementById("fen-id").value = game.fen()
+  }
+
+  var config = {
+    draggable: true,
+    position: '{{ fen }}',
+    onDragStart: onDragStart,
+    onDrop: onDrop,
+    onMouseoutSquare: onMouseoutSquare,
+    onMouseoverSquare: onMouseoverSquare,
+    onSnapEnd: onSnapEnd,
+  }
+  board = Chessboard('board', config)
+  $('#').on('click', clickShowPositionBtn)
+  </script>
+{% endblock %}

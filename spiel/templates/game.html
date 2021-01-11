@@ -20,9 +20,14 @@
     </div>
 
     <div class="row">
-      <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-        <div style="text-align:center">
-          <div id="board" style="width: 400px"></div>
+      <div class="col-6">
+        <div id="myBoard" style="width: 400px"></div>
+      </div>
+      <div class="col-6">
+        <label>Status:</label>
+        <div id="status"></div>
+        <label>PGN:</label>
+        <div id="pgn"></div>
         </div>
       </div>
     </div>
@@ -41,9 +46,9 @@
           {% csrf_token %}
           <div style="text-align:center">
             <br>
-            <button type="submit" name="einsenden" class="btn btn-success" onclick="einsenden()">Dem Schicksal fügen</button>
+            <button type="submit" name="einsenden" class="btn btn-success">Dem Schicksal fügen</button>
             <br>
-            <input type="text" id="fen-id" name="fen"></input>
+            <input type="text" id="move-id" name="move" hidden=true></input>
           </div>
         </form>
       </div>
@@ -60,38 +65,17 @@
   // NOTE: this example uses the chess.js library:
   // https://github.com/jhlywa/chess.js
 
-  document.getElementById("current-fen").innerHTML = '{{ fen }}'
   var board = null
-  var game = null
-  if ('{{ fen }}' === 'start') {
-    game = new Chess()
-  }
-  else {
-    game = new Chess('{{ fen }}')
-  }
-  var whiteSquareGrey = '#a9a9a9'
-  var blackSquareGrey = '#696969'
+  var game = new Chess()
+  var moved = false
+  var $status = $('#status')
+  var $pgn = $('#pgn')
 
-  function removeGreySquares () {
-    $('#board .square-55d63').css('background', '')
-  }
-
-  function greySquare (square) {
-    var $square = $('#board .square-' + square)
-
-    var background = whiteSquareGrey
-    if ($square.hasClass('black-3c85d')) {
-      background = blackSquareGrey
-    }
-
-    $square.css('background', background)
-  }
-
-  function onDragStart (source, piece) {
+  function onDragStart (source, piece, position, orientation) {
     // do not pick up pieces if the game is over
     if (game.game_over()) return false
 
-    // or if it's not that side's turn
+    // only pick up pieces for the side to move
     if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
         (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
       return false
@@ -99,8 +83,6 @@
   }
 
   function onDrop (source, target) {
-    removeGreySquares()
-
     // see if the move is legal
     var move = game.move({
       from: source,
@@ -110,47 +92,72 @@
 
     // illegal move
     if (move === null) return 'snapback'
-  }
 
-  function onMouseoverSquare (square, piece) {
-    // get list of possible moves for this square
-    var moves = game.moves({
-      square: square,
-      verbose: true
-    })
-
-    // exit if there are no moves available for this square
-    if (moves.length === 0) return
-
-    // highlight the square they moused over
-    greySquare(square)
-
-    // highlight the possible squares for this piece
-    for (var i = 0; i < moves.length; i++) {
-      greySquare(moves[i].to)
+    if (!moved) {
+      document.getElementById("move-id").value = source + target
+      moved = true
     }
+
+    updateStatus()
   }
 
-  function onMouseoutSquare (square, piece) {
-    removeGreySquares()
-  }
-
+  // update the board position after the piece snap
+  // for castling, en passant, pawn promotion
   function onSnapEnd () {
     board.position(game.fen())
-    document.getElementById("current-fen").innerHTML = game.fen()
-    document.getElementById("fen-id").value = game.fen()
+  }
+
+  function updateStatus () {
+    var status = ''
+
+    var moveColor = 'White'
+    if (game.turn() === 'b') {
+      moveColor = 'Black'
+    }
+
+    // checkmate?
+    if (game.in_checkmate()) {
+      status = 'Game over, ' + moveColor + ' is in checkmate.'
+    }
+
+    // draw?
+    else if (game.in_draw()) {
+      status = 'Game over, drawn position'
+    }
+
+    // game still on
+    else {
+      status = moveColor + ' to move'
+
+      // check?
+      if (game.in_check()) {
+        status += ', ' + moveColor + ' is in check'
+      }
+    }
+
+    $status.html(status)
+    $pgn.html(game.pgn())
   }
 
   var config = {
     draggable: true,
-    position: '{{ fen }}',
+    position: 'start',
     onDragStart: onDragStart,
     onDrop: onDrop,
-    onMouseoutSquare: onMouseoutSquare,
-    onMouseoverSquare: onMouseoverSquare,
-    onSnapEnd: onSnapEnd,
+    onSnapEnd: onSnapEnd
   }
-  board = Chessboard('board', config)
-  $('#').on('click', clickShowPositionBtn)
+
+  board = Chessboard('myBoard', config)
+  var moves = {{ move_list|safe }}
+
+  for (i = 1; i < moves.length; i++) {
+    move = game.move({
+      from: moves[i].slice(0,2),
+      to: moves[i].slice(2,5),
+    })
+    board.position(game.fen())
+    updateStatus()
+  }
+
   </script>
 {% endblock %}

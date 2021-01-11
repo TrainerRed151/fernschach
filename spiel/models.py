@@ -12,4 +12,4 @@ class Player(models.Model):
 class Game(models.Model):
     white = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='white')
     black = models.ForeignKey(Player, on_delete=models.CASCADE, related_name='black')
-    board = models.CharField(max_length=256)
+    history = models.CharField(max_length=2048, default='')
